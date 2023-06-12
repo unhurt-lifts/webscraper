@@ -5,6 +5,9 @@ from errorhandler import handle_exception
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
+import certifi
+import requests
+
 logging.basicConfig(filename="error.log", level=logging.ERROR)
 
 
@@ -18,14 +21,26 @@ class WebScraper:
             raise Exception(f"Error validating URL: {str(e)}")
 
     @handle_exception
+    def fetch_html(self, url):
+        try:
+            parsed_url = urlparse(url)
+            if not parsed_url.scheme or not parsed_url.netloc:
+                raise Exception(f"Invalid URL: {url}")
+            response = requests.get(url, verify=certifi.where())
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Error fetching HTML: {str(e)}")
+
+
+
+    @handle_exception
     def scrape_data_from_elements(self, urls, elements):
         try:
             scraped_data = []
 
             for url in urls:
-                response = requests.get(url)
-                response.raise_for_status()
-                html_content = response.text
+                html_content = self.fetch_html(url)
 
                 # Scenario: Parsing HTML and scraping data from selected elements
                 soup = BeautifulSoup(html_content, "html.parser")
@@ -36,7 +51,7 @@ class WebScraper:
 
             # Store the scraped data
             self.data = scraped_data
-
+            print(self.data)
         except Exception as e:
             raise Exception(f"Error scraping data from elements: {str(e)}")
 

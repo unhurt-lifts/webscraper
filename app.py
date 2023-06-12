@@ -1,112 +1,116 @@
-# -*- coding: utf-8 -*-
-
 import tkinter as tk
-from tkinter import messagebox, filedialog
-from widgets import WidgetCreator, PandasTable
-from html_inspector import HTMLInspector
+from tkinter import ttk, messagebox
+from bs4 import BeautifulSoup
 from webscraper import WebScraper
+from widgets import WidgetCreator
 from errorhandler import handle_exception
-from get_html_request import get_html_code
 
 
 class App:
-    def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("Web Scraper")
-        self.widget_creator = WidgetCreator(self.root)
-        self.urls = []
+    def __init__(self, root):
+        self.root = root
+        self.scraper = WebScraper()
+        self.widgets = WidgetCreator(self.root)
         self.html_code = ""
 
-    def create_widgets(self):
-        self.widget_creator.create_url_input(self.get_html_code)
-        self.widget_creator.create_html_input()
-        self.widget_creator.create_selector_input()
-        self.widget_creator.create_scrape_button(self.start_scraping)
+        self.create_url_input()
 
-        self.root.mainloop()
+    @handle_exception
+    def create_url_input(self):
+        label = ttk.Label(self.root, text="URL:")
+        label.pack()
+
+        self.url_entry = ttk.Entry(self.root, width=50)
+        self.url_entry.pack()
+
+        button = ttk.Button(self.root, text="Get HTML", command=self.get_html_code)
+        button.pack()
 
     @handle_exception
     def get_html_code(self):
-        # Get the URL from the entry
-        url = self.widget_creator.url_entry.get().strip()
+        url = self.url_entry.get()
 
-        # Validate the URL
-        if not url:
-            messagebox.showwarning("Empty URL", "Please enter a URL.")
+        if not self.scraper.is_valid_url(url):
+            messagebox.showerror("Error", "Invalid URL")
             return
+
+        self.url_entry.config(state="disabled")
 
         try:
-            self.html_code = get_html_code(url)
-            self.widget_creator.html_entry.delete("1.0", tk.END)
-            self.widget_creator.html_entry.insert(tk.END, self.html_code)
+            html_code = self.scraper.fetch_html(url)
+            self.html_code = html_code
+            self.open_html_selection()
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to get HTML code:\n{str(e)}")
-
+            messagebox.showerror("Error", str(e))
 
     @handle_exception
-    def start_scraping(self):
-        # Get the URLs from the entry
-        urls_text = self.widget_creator.url_entry.get().strip()
-        self.urls = urls_text.splitlines()
+    def open_html_selection(self):
+        selection_window = tk.Toplevel(self.root)
+        selection_window.title("Select HTML Elements")
 
-        # Get the HTML code from the entry
-        self.html_code = self.widget_creator.html_entry.get("1.0", tk.END)
+        label = ttk.Label(selection_window, text="Select HTML Elements:")
+        label.pack()
 
-        # Get the selector from the entry
-        selector = self.widget_creator.selector_entry.get().strip()
+        elements_listbox = tk.Listbox(selection_window, selectmode=tk.MULTIPLE, width=50, height=20)
+        elements_listbox.pack()
 
-        # Create an HTMLInspector object
-        inspector = HTMLInspector()
+        # Parse the HTML code and retrieve the elements
+        soup = BeautifulSoup(self.html_code, "html.parser")
+        elements = soup.find_all()
+        for element in elements:
+            tag = element.name
+            attributes = [(attr, value) for attr, value in element.attrs.items()]
+            tag_with_attributes = tag + " " + " ".join([f"{attr}={value}" for attr, value in attributes])
+            elements_listbox.insert(tk.END, tag_with_attributes)
 
-        # Validate the HTML code
-        if not inspector.is_valid_html(self.html_code):
-            messagebox.showwarning("Invalid HTML", "The entered HTML code is invalid.")
-            return
+        next_button = ttk.Button(selection_window, text="Next", command=lambda: self.get_selected_elements(selection_window, elements_listbox))
+        next_button.pack(pady=10)
 
-        # Create a WebScraper object
-        scraper = WebScraper()
+    @handle_exception
+    def get_selected_elements(self, selection_window, listbox):
+        selected_indices = listbox.curselection()
+        selected_elements = [listbox.get(index) for index in selected_indices]
 
-        # Scrape data from the URLs and HTML code
-        for url in self.urls:
-            if not scraper.is_valid_url(url):
-                messagebox.showwarning("Invalid URL", f"The URL '{url}' is invalid.")
-                return
+        selection_window.destroy()
+        self.show_selected_elements(selected_elements)
 
-        selected_elements = inspector.get_selected_elements(self.html_code, selector)
-        scraper.scrape_data_from_elements(self.urls, selected_elements)
+    @handle_exception
+    def show_selected_elements(self, selected_elements):
+        selection_window = tk.Toplevel(self.root)
+        selection_window.title("Selected Items")
 
-        # Create a DataFrame
-        data_frame = scraper.create_dataframe()
+        label = ttk.Label(selection_window, text="Selected Elements:")
+        label.pack()
 
-        # Save the DataFrame to an Excel file
-        filename = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel File", "*.xlsx")])
-        if filename:
-            scraper.save_to_excel(filename)
+        elements_listbox = tk.Listbox(selection_window, selectmode=tk.MULTIPLE, width=50, height=20)
+        elements_listbox.pack()
 
-        # Show the DataFrame
-        self.show_dataframe(data_frame)
+        for element in selected_elements:
+            elements_listbox.insert(tk.END, element)
 
-    def show_dataframe(self, data_frame):
-        # Create a new window to display the DataFrame
-        window = tk.Toplevel(self.root)
-        window.title("Scraped Data")
+        scrape_button = ttk.Button(selection_window, text="Scrape", command=lambda: self.start_scraping(selected_elements))
+        scrape_button.pack(pady=10)
 
-        # Create a PandasTable widget to show the DataFrame
-        table = PandasTable(window, dataframe=data_frame)
-        table.pack(fill=tk.BOTH, expand=True)
+    @handle_exception
+    def start_scraping(self, selected_elements):
+        # Scrape data from selected elements
+        self.scraper.scrape_data_from_elements(self.html_code, selected_elements)
 
-        # Add a close button
-        close_button = tk.Button(window, text="Close", command=window.destroy)
-        close_button.pack()
+        # Create a pandas DataFrame
+        data_frame = self.scraper.create_dataframe()
 
-    def clear_html_code(self):
-        self.widget_creator.html_entry.delete(1.0, tk.END)
+        # Display the DataFrame in a table
+        self.widgets.display_dataframe(data_frame)
 
-    def run(self):
-        self.create_widgets()
+    def handle_exception(self, exception):
+        # Handle exceptions and display an error message
+        error_message = str(exception)
+        print(error_message)
+        tk.messagebox.showerror("Error", error_message)
 
 
 if __name__ == "__main__":
-    app = App()
-    app.run()
-
+    root = tk.Tk()
+    root.title("Web Scraper")
+    app = App(root)
+    root.mainloop()
