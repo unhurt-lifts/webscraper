@@ -40,5 +40,10 @@ The Web Scraper is a Python application that allows you to extract data from web
   7.  The scraped data will be displayed in a message box.
     
 
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for more information.
+```CSS
+Feel free to customize and enhance the README file according to your specific project requirements.
 
 
