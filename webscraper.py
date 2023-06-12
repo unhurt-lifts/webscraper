@@ -1,76 +1,60 @@
 import requests
 import pandas as pd
-import logging
-from errorhandler import handle_exception
-from urllib.parse import urlparse
 from bs4 import BeautifulSoup
-
-import certifi
-import requests
-
-logging.basicConfig(filename="error.log", level=logging.ERROR)
+from errorhandler import handle_exception
 
 
 class WebScraper:
+    def __init__(self):
+        self.data = []
+
+    @staticmethod
     @handle_exception
-    def is_valid_url(self, url):
-        try:
-            result = urlparse(url)
-            return all([result.scheme, result.netloc])
-        except Exception as e:
-            raise Exception(f"Error validating URL: {str(e)}")
+    def is_valid_url(url):
+        # Check if the URL is valid
+        return requests.get(url).ok
 
+    @staticmethod
     @handle_exception
-    def fetch_html(self, url):
-        try:
-            parsed_url = urlparse(url)
-            if not parsed_url.scheme or not parsed_url.netloc:
-                raise Exception(f"Invalid URL: {url}")
-            response = requests.get(url, verify=certifi.where())
-            response.raise_for_status()
-            return response.text
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Error fetching HTML: {str(e)}")
-
-
+    def fetch_html(url):
+        # Fetch HTML code from the provided URL
+        response = requests.get(url)
+        return response.text
 
     @handle_exception
-    def scrape_data_from_elements(self, urls, elements):
-        try:
-            scraped_data = []
+    def scrape_data_from_elements(self, html_code, elements):
+        # Parse the HTML code
+        soup = BeautifulSoup(html_code, "html.parser")
 
-            for url in urls:
-                html_content = self.fetch_html(url)
+        # Scrape data from selected elements
+        for element in elements:
+            tag, attrs = self.parse_element(element)
+            elements = soup.find_all(tag, attrs=attrs)
+            data = [self.get_element_data(e) for e in elements]
+            self.data.extend(data)
 
-                # Scenario: Parsing HTML and scraping data from selected elements
-                soup = BeautifulSoup(html_content, "html.parser")
-                for element in elements:
-                    # Find and extract the desired data from the selected element
-                    data = soup.select_one(element).text
-                    scraped_data.append(data)
+    @staticmethod
+    def parse_element(element):
+        # Parse the element string into tag and attributes
+        parts = element.split(" ")
+        tag = parts[0]
+        attrs = {}
+        for attr in parts[1:]:
+            attr_parts = attr.split("=")
+            key = attr_parts[0]
+            value = attr_parts[1].strip('"') if len(attr_parts) > 1 else ""
+            attrs[key] = value
+        return tag, attrs
 
-            # Store the scraped data
-            self.data = scraped_data
-            print(self.data)
-        except Exception as e:
-            raise Exception(f"Error scraping data from elements: {str(e)}")
 
-    @handle_exception
+    @staticmethod
+    def get_element_data(element):
+        # Get data from the element
+        tag = element.name
+        text = element.text.strip()
+        attrs = element.attrs
+        return {"tag": tag, "text": text, "attrs": attrs}
+
     def create_dataframe(self):
-        try:
-            # Scenario: Creating a pandas DataFrame from scraped data
-            data_frame = pd.DataFrame({"Scraped Data": self.data})
-            return data_frame
-
-        except Exception as e:
-            raise Exception(f"Error creating DataFrame: {str(e)}")
-
-    @handle_exception
-    def save_to_excel(self, filename):
-        try:
-            # Scenario: Saving the DataFrame to an Excel file
-            data_frame = self.create_dataframe()
-            data_frame.to_excel(filename, index=False)
-
-        except Exception as e:
-            raise Exception(f"Error saving to Excel: {str(e)}")
+        # Create a pandas DataFrame from the scraped data
+        return pd.DataFrame(self.data)

@@ -48,7 +48,7 @@ class App:
         selection_window = tk.Toplevel(self.root)
         selection_window.title("Select HTML Elements")
 
-        label = ttk.Label(selection_window, text="Select HTML Elements:")
+        label = ttk.Label(selection_window, text="HTML Elements for your url:")
         label.pack()
 
         elements_listbox = tk.Listbox(selection_window, selectmode=tk.MULTIPLE, width=50, height=20)
@@ -102,15 +102,13 @@ class App:
         # Display the DataFrame in a table
         self.widgets.display_dataframe(data_frame)
 
-    def handle_exception(self, exception):
-        # Handle exceptions and display an error message
-        error_message = str(exception)
-        print(error_message)
-        tk.messagebox.showerror("Error", error_message)
+    @handle_exception
+    def run(self):
+        self.root.mainloop()
 
 
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Web Scraper")
     app = App(root)
-    root.mainloop()
+    app.run()
