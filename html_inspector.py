@@ -5,6 +5,8 @@ from tkinter import ttk
 from bs4 import BeautifulSoup
 import logging
 from errorhandler import handle_exception
+from tkinter import messagebox
+
 
 
 logging.basicConfig(filename="error.log", level=logging.ERROR)
