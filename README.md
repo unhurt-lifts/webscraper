@@ -19,7 +19,7 @@ The Web Scraper is a Python application that allows you to extract data from web
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/your-username/web-scraper.git
+   git clone https://github.com/unhurt-lifts/webscraper.git
 2.  Navigate to the project directory: 
     ```shell
     cd web-scraper
