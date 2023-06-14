@@ -8,25 +8,20 @@ class WebScraper:
     def __init__(self):
         self.data = []
 
-    @staticmethod
     @handle_exception
-    def is_valid_url(url):
-        # Check if the URL is valid
+    def is_valid_url(self, url):
         return requests.get(url).ok
 
-    @staticmethod
     @handle_exception
-    def fetch_html(url):
-        # Fetch HTML code from the provided URL
+    def fetch_html(self, url):
         response = requests.get(url)
+        response.raise_for_status()
         return response.text
 
     @handle_exception
     def scrape_data_from_elements(self, html_code, elements):
-        # Parse the HTML code
         soup = BeautifulSoup(html_code, "html.parser")
 
-        # Scrape data from selected elements
         for element in elements:
             tag, attrs = self.parse_element(element)
             elements = soup.find_all(tag, attrs=attrs)
@@ -35,26 +30,25 @@ class WebScraper:
 
     @staticmethod
     def parse_element(element):
-        # Parse the element string into tag and attributes
         parts = element.split(" ")
         tag = parts[0]
         attrs = {}
         for attr in parts[1:]:
             attr_parts = attr.split("=")
-            key = attr_parts[0]
-            value = attr_parts[1].strip('"') if len(attr_parts) > 1 else ""
-            attrs[key] = value
+            if len(attr_parts) >= 2:
+                key = attr_parts[0]
+                value = attr_parts[1].strip("'\"")
+                attrs[key] = value
         return tag, attrs
-
 
     @staticmethod
     def get_element_data(element):
-        # Get data from the element
-        tag = element.name
-        text = element.text.strip()
-        attrs = element.attrs
-        return {"tag": tag, "text": text, "attrs": attrs}
+        return element.text.strip()
 
     def create_dataframe(self):
-        # Create a pandas DataFrame from the scraped data
-        return pd.DataFrame(self.data)
+        df = pd.DataFrame(data=self.data, columns=["Scraped Data"])
+        return df
+
+    @staticmethod
+    def save_to_excel(data_frame, filename):
+        data_frame.to_excel(filename, index=False)

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-
-import functools
-import traceback
 import logging
+import traceback
+from functools import wraps
+
 
 def handle_exception(func):
-    @functools.wraps(func)
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -13,5 +13,6 @@ def handle_exception(func):
             logging.error(f"An exception occurred in {func.__name__}: {str(e)}")
             logging.error(traceback.format_exc())
             raise
+
     return wrapper
 
