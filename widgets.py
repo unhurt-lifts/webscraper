@@ -1,79 +1,76 @@
 import tkinter as tk
-from tkinter import ttk
-from pandastable import Table
-from bs4 import BeautifulSoup
+from tkinter.scrolledtext import ScrolledText
 
 
-class WidgetCreator:
-    def __init__(self, root):
-        self.root = root
-        self.url_entry = None
-        self.html_entry = None
-        self.elements_listbox = None
+class HTMLCodeScrolledText(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.scrolled_text = ScrolledText(self)
+        self.scrolled_text.pack(fill=tk.BOTH, expand=True)
 
-    def clear_widgets(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
+    def show_html_code(self, html_code):
+        self.scrolled_text.delete("1.0", tk.END)  # Clear previous content
+        self.scrolled_text.insert(tk.END, html_code,"html")
 
-    def create_url_input(self, get_html_code):
-        self.clear_widgets()
 
-        label = ttk.Label(self.root, text="URL:")
-        label.pack()
+class ElementsListbox(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.listbox = tk.Listbox(self)
+        self.scrollbar = tk.Scrollbar(self, command=self.listbox.yview)
+        self.listbox.configure(yscrollcommand=self.scrollbar.set)
+        self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.url_entry = ttk.Entry(self.root, width=50)
-        self.url_entry.pack()
+    def insert_elements(self, elements):
+        self.listbox.delete(0, tk.END)  # Clear previous elements
 
-        button = ttk.Button(self.root, text="Get HTML", command=get_html_code)
-        button.pack()
-
-    def create_html_input(self, html_code):
-        self.clear_widgets()
-
-        label = ttk.Label(self.root, text="HTML Code:")
-        label.pack()
-
-        self.html_entry = tk.Text(self.root, height=10)
-        self.html_entry.pack()
-        self.html_entry.insert(tk.END, html_code)
-
-    def open_element_selection(self, html_content, callback):
-        self.clear_widgets()
-
-        element_selection_window = tk.Toplevel(self.root)
-        element_selection_window.title("Select HTML Elements")
-
-        elements_frame = ttk.Frame(element_selection_window)
-        elements_frame.pack(pady=10)
-
-        elements_label = ttk.Label(elements_frame, text="Select HTML Elements:")
-        elements_label.pack(side=tk.LEFT)
-
-        self.elements_listbox = tk.Listbox(elements_frame, selectmode=tk.MULTIPLE, width=80, height=30)
-        self.elements_listbox.pack(side=tk.LEFT)
-
-        # Parse the HTML content and retrieve the elements
-        soup = BeautifulSoup(html_content, "html.parser")
-        elements = soup.find_all()
         for element in elements:
-            tag = element.name
-            attributes = [(attr, value) for attr, value in element.attrs.items()]
-            tag_with_attributes = tag + " " + " ".join([f"{attr}={value}" for attr, value in attributes])
-            self.elements_listbox.insert(tk.END, tag_with_attributes)
+            self.listbox.insert(tk.END, element)
 
-        select_button = ttk.Button(
-            element_selection_window, text="Select", command=lambda: callback(self.elements_listbox)
-        )
-        select_button.pack(pady=10)
+    def get_selected_element(self):
+        selected_indices = self.listbox.curselection()
+        if selected_indices:
+            selected_index = selected_indices[0]
+            selected_element = self.listbox.get(selected_index)
+            return selected_element
 
-    def display_dataframe(self, dataframe):
-        self.clear_widgets()
+    def clear_selection(self):
+        self.listbox.selection_clear(0, tk.END)
 
-        table_window = tk.Toplevel(self.root)
-        table_window.title("Scraped Data")
+    def get_all_elements(self):
+        return self.listbox.get(0, tk.END)
 
-        table_frame = ttk.Frame(table_window)
-        table_frame.pack(pady=10)
 
-        table = Table(table_frame, dataframe=dataframe)
-        table.show()
+class ScrapedDataWindow(tk.Toplevel):
+    def __init__(self, parent, scraped_data):
+        super().__init__(parent)
+        self.title("Scraped Data")
+
+        self.data_listbox = tk.Listbox(self)
+        self.data_listbox.pack(fill=tk.BOTH, expand=True)
+
+        self.save_button = tk.Button(self, text="Save", command=self.save_data)
+        self.save_button.pack(side=tk.LEFT)
+
+        self.done_button = tk.Button(self, text="Done", command=self.close_window)
+        self.done_button.pack(side=tk.LEFT)
+
+        self.data_listbox.delete(0, tk.END)  # Clear previous data
+        for data in scraped_data:
+            tag = data["tag"]
+            attributes = data["attributes"]
+            element_data = f"Tag: {tag}  |  Attributes: {attributes}"
+            self.data_listbox.insert(tk.END, element_data)
+
+    def save_data(self):
+        selected_indices = self.data_listbox.curselection()
+        if selected_indices:
+            selected_index = selected_indices[0]
+            selected_data = self.data_listbox.get(selected_index)
+            # Logic to save the selected data to a file (Excel or CSV)
+            # You can implement the save functionality according to your requirements
+            print(f"Save data: {selected_data}")
+
+    def close_window(self):
+        self.destroy()

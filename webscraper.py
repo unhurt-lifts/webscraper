@@ -1,54 +1,57 @@
-import requests
-import pandas as pd
 from bs4 import BeautifulSoup
-from errorhandler import handle_exception
+import requests
+import re
+#import pdb; pdb.set_trace()
 
 
-class WebScraper:
+class Webscraper:
     def __init__(self):
-        self.data = []
+        self.html_code = None
 
-    @handle_exception
-    def is_valid_url(self, url):
-        return requests.get(url).ok
+    def validate_url(self, url):
+        # URL validation logic using regular expression
+        pattern = r'^(http|https):\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}(\/\S*)?$'
+        if re.match(pattern, url):
+            return True
+        else:
+            return False
 
-    @handle_exception
-    def fetch_html(self, url):
+    def get_html_code(self, url):
         response = requests.get(url)
-        response.raise_for_status()
-        return response.text
+        self.html_code = response.text
+        return self.html_code
 
-    @handle_exception
-    def scrape_data_from_elements(self, html_code, elements):
-        soup = BeautifulSoup(html_code, "html.parser")
+    def get_elements(self):
+        soup = BeautifulSoup(self.html_code, "html.parser")
+        
+        elements = [str(element) for element in soup.find_all()]
+        return elements
 
-        for element in elements:
-            tag, attrs = self.parse_element(element)
-            elements = soup.find_all(tag, attrs=attrs)
-            data = [self.get_element_data(e) for e in elements]
-            self.data.extend(data)
+    def scrape_data(self, selected_elements):
+        soup = BeautifulSoup(self.html_code, "html.parser")
+        data = []
+        for selected_element in selected_elements:
+            tag_match = re.match(r"<(\w+)", selected_element)
+            if tag_match:
+                tag = tag_match.group(1)
+            else:
+                # Invalid selected element format
+                continue
+            
+            attributes_match = re.findall(r'(\w+)="([^"]*)"', selected_element)
+            attributes = {attr: value for attr, value in attributes_match}
+            
+            element = soup.find(tag, attrs=attributes)
+            if element:
+                element_data = {
+                    "tag": element.name,
+                    "data": element.get_text()
+                }
+                if attributes:
+                    element_data["attributes"] = attributes
+                    element_data["attribute_count"] = len(attributes)
+                else:
+                    element_data["attribute_count"] = 0
+                data.append(element_data)
+        return data
 
-    @staticmethod
-    def parse_element(element):
-        parts = element.split(" ")
-        tag = parts[0]
-        attrs = {}
-        for attr in parts[1:]:
-            attr_parts = attr.split("=")
-            if len(attr_parts) >= 2:
-                key = attr_parts[0]
-                value = attr_parts[1].strip("'\"")
-                attrs[key] = value
-        return tag, attrs
-
-    @staticmethod
-    def get_element_data(element):
-        return element.text.strip()
-
-    def create_dataframe(self):
-        df = pd.DataFrame(data=self.data, columns=["Scraped Data"])
-        return df
-
-    @staticmethod
-    def save_to_excel(data_frame, filename):
-        data_frame.to_excel(filename, index=False)
