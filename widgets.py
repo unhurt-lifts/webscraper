@@ -68,23 +68,7 @@ class ScrapedDataWindow:
         self.save_button = ttk.Button(self.window, text="Save", command=self.save_data)
         self.save_button.pack()
 
-    # def display_scraped_data(self):
-    #     # Clear existing data in the treeview
-    #     self.treeview.delete(*self.treeview.get_children())
     
-    #     self.treeview["columns"] = ("tag", "attributes", "attribute_count", "data")
-    #     self.treeview.heading("tag", text="Tag")
-    #     self.treeview.heading("attributes", text="Attributes")
-    #     self.treeview.heading("attribute_count", text="Attribute Count")
-    #     self.treeview.heading("data", text="Data")
-    
-    #     for data in self.scraped_data:
-    #         tag = data["tag"]
-    #         attributes = data.get("attributes", {})
-    #         attribute_count = data.get("attribute_count", 0)
-    #         data_text = data.get("data", "")
-    
-    #         self.treeview.insert("", "end", values=(tag, attributes, attribute_count, data_text))
 
     
     def display_scraped_data(self):
@@ -107,24 +91,7 @@ class ScrapedDataWindow:
             self.treeview.insert("", "end", values=(i, tag, attributes, attribute_count, data_text))
 
 
-    # def save_data(self):
-    #     # Use self.scraped_data instead of self
-    #     data_frame = pd.DataFrame(self.scraped_data)
-    #     selected_item = self.treeview.focus()
-    #     values = self.treeview.item(selected_item)["values"]
-    #     import pdb; pdb.set_trace()
-    #     # Save the selected data to a file (you can modify this as per your requirements)
-    #     filename = filedialog.asksaveasfilename(defaultextension=".csv")
-    #     if filename:
-    #         try:
-    #             with open(filename, "w") as file:
-    #                 file.write(f"Tag: {values[0]}\n")
-    #                 file.write(f"Attributes: {values[1]}\n")
-    #                 file.write(f"Data: {values[2]}\n")
-    #             messagebox.showinfo("Save", "Scraped data saved successfully.")
-    #         except Exception as e:
-    #             messagebox.showerror("Error", f"An error occurred while saving the data:\n{str(e)}")
-
+    
 
     def save_data(self): # This method configures what needs to be saved 
         # Use self.scraped_data instead of self

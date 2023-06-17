@@ -46,7 +46,7 @@ class App:
         self.process_button = None
         self.webscraper = Webscraper()
         self.error_handler = ErrorHandler()
-        #self.html_code = ""  # Add the 'html_code' attribute and initialize it to an empty string
+        self.html_code = ""  # Add the 'html_code' attribute and initialize it to an empty string
 
     def create_widgets(self):
         self.root.title("Web Scraper")
@@ -86,7 +86,7 @@ class App:
 
     def show_html_code(self, html_code):
         
-        #self.html_code = html_code  # Set the 'html_code' attribute
+        self.html_code = html_code  # Set the 'html_code' attribute
         html_window = Toplevel(self.root)
         html_window.title("HTML Code")
 
@@ -102,34 +102,55 @@ class App:
         back_button = Button(html_window, text="Back", command=self.root.deiconify)
         back_button.pack(side='left', padx=10, pady=10)
 
+    
+
+
     def open_element_selection(self):
-         elements_window = Toplevel(self.root)
-         elements_window.title("Select HTML Elements to Scrape")
-     
-         elements_frame = Frame(elements_window)
-         elements_frame.pack(fill='both', expand=True)
-     
-         elements_listbox = Listbox(elements_frame, selectmode='multiple', width=100, height=40)
-         elements_listbox.pack(side='left', padx=10, pady=10)
-     
-         scrollbar = Scrollbar(elements_frame, command=elements_listbox.yview)
-         scrollbar.pack(side='right', fill='y')
-         elements_listbox.config(yscrollcommand=scrollbar.set)
-     
-         # Add elements to the listbox
-         elements = self.webscraper.get_elements()
-         
-         
-         for element in elements:
-             elements_listbox.insert(END, element)
-     
-         # Select Button
-         select_button = Button(elements_window, text="Scrape", command=lambda: self.process_selected_elements(elements_listbox))
-         select_button.pack(side='right', padx=10, pady=10)
-     
-         # Back Button
-         back_button = Button(elements_window, text="Back", command=elements_window.destroy)
-         back_button.pack(side='left', padx=10, pady=10)
+        elements_window = Toplevel(self.root)
+        elements_window.title("Select HTML Elements to Scrape")
+    
+        elements_frame = Frame(elements_window)
+        elements_frame.pack(fill='both', expand=True)
+    
+        # Label for search bar
+        search_label = Label(elements_frame, text="Search Elements: Use Crtl key or Command key for multiple selection")
+        search_label.pack(side='top', padx=10, pady=5)
+    
+        # Search Bar
+        search_entry = Entry(elements_frame, width=30)
+        search_entry.pack(side='top', padx=10, pady=5)
+    
+        elements_listbox = Listbox(elements_frame, selectmode='multiple', width=100, height=35)
+        elements_listbox.pack(side='left', padx=10, pady=5)
+    
+        scrollbar = Scrollbar(elements_frame, command=elements_listbox.yview)
+        scrollbar.pack(side='right', fill='y')
+        elements_listbox.config(yscrollcommand=scrollbar.set)
+    
+        # Add elements to the listbox
+        elements = self.webscraper.get_elements()
+    
+        def filter_elements(event=None):
+            search_text = search_entry.get()
+            elements_listbox.delete(0, END)  # Clear previous elements
+    
+            filtered_elements = [element for element in elements if search_text.lower() in element.lower()]
+    
+            for element in filtered_elements:
+                elements_listbox.insert(END, element)
+    
+        search_entry.bind("<KeyRelease>", filter_elements)
+    
+        filter_elements()
+    
+        # Select Button
+        select_button = Button(elements_window, text="Scrape", command=lambda: self.process_selected_elements(elements_listbox))
+        select_button.pack(side='right', padx=10, pady=10)
+    
+        # Back Button
+        back_button = Button(elements_window, text="Back", command=elements_window.destroy)
+        back_button.pack(side='left', padx=10, pady=10)
+
 
 
 
@@ -148,8 +169,10 @@ class App:
                     data_frame.to_csv(file_path, index=False)
                     messagebox.showinfo("Save Successful", "Data saved as CSV.")
                 elif file_path.endswith(".xlsx"):
-                    # Handle saving as Excel file
+                    data_frame = pd.DataFrame(scraped_data)
+                    data_frame.to_excel(file_path, index=False)
                     messagebox.showinfo("Save Successful", "Data saved as Excel.")
+                    
                 else:
                     messagebox.showerror("Invalid File Format", "Please save the data in CSV or Excel format.")
             
