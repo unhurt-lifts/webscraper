@@ -21,6 +21,5 @@ class ErrorHandler:
         )
 
 
-def log_uncaught_exceptions():
-    error_handler = ErrorHandler()
+def log_uncaught_exceptions(error_handler):
     sys.excepthook = error_handler.log_exception
