@@ -17,8 +17,8 @@ The Web Scraper Beta is a powerful tool for extracting data from websites. It al
 ## Installation
 To install the Web Scraper Beta, follow these steps:
 1. Clone the repository: `git clone https://github.com/unhurt-lifts/webscraper.git`
-2. Install the necessary dependencies: `npm install`
-3. Run the application: `npm start`
+2. Install the necessary dependencies: `pip install -r requirements.txt`
+3. Run the application: `python3 app.py`
 
 ## Usage
 To use the Web Scraper Beta, perform the following steps:
